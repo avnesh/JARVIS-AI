@@ -133,9 +133,9 @@ class Jarvis(floatlayout.FloatLayout):
             with sr.Microphone() as source:
                 print("Listening...")
                 try:
-                    r.adjust_for_ambient_noise(source, duration=1.0) # Calibrate noise
-                    # phrase_time_limit=None allows indefinite listening until silence
-                    audio=r.listen(source, timeout=None, phrase_time_limit=None)
+                    r.adjust_for_ambient_noise(source, duration=0.5) # Calibrate noise
+                    # Set timeout so it doesn't hang forever if no speech is detected
+                    audio=r.listen(source, timeout=5, phrase_time_limit=25)
                 except sr.WaitTimeoutError:
                     print("Timeout listening")
                     self.is_listening = False
