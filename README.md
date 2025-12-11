@@ -2,7 +2,7 @@
 
 ### Steps to run on your system.
 Run following commands on terminal
-- git clone https://github.com/Dhruv58/Jarvis-AI.git
+- git clone https://github.com/avnesh/JARVIS-AI.git
 - conda create --name myenv
 - Activate Virtual Environment
   - Windows
