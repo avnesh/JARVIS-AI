@@ -3,45 +3,48 @@ import wikipedia
 import pywhatkit as kit
 from email.message import EmailMessage
 import smtplib
-import gtts
 import os
-from decouple import config
-from pydub import AudioSegment
-from pydub.playback import play
+import pyttsx3
+import threading
+
 from constants import (
     EMAIL,
     PASSWORD,
-    IP_ADDR_API_URL,
-    NEWS_FETCH_API_URL,
-    WEATHER_FORECAST_API_URL,
     SMTP_URL,
     SMTP_PORT,
+    NEWS_FETCH_API_URL,
     NEWS_FETCH_API_KEY,
+    NEWS_SEARCH_URL,
     WEATHER_FORECAST_API_KEY,
+    WEATHER_CURRENT_URL
 )
 
-
-
-
 def speak(text):
-    tts = gtts.gTTS(text,lang='en')
-    tts.save("output.wav")
-    
-    audio = AudioSegment.from_file("output.wav")
-
-    os.remove("output.wav")
-    audio = audio.speedup(playback_speed=1.5)
-    
-    play(audio)
+    # Use pyttsx3 for reliable, offline, and snappy voice (Iron Man style)
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 170) # Speed it up slightly
+        engine.setProperty('volume', 1.0)
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"Voice Error: {e}")
+    pass
     
 def find_my_ip():
-    ip_address = requests.get('https://api64.ipify.org?format=json').json()
-    return ip_address["ip"]
+    try:
+        ip_address = requests.get('https://api64.ipify.org?format=json').json()
+        return ip_address["ip"]
+    except:
+        return "Unknown"
 
 
 def search_on_wikipedia(query):
-    results = wikipedia.summary(query, sentences=2)
-    return results
+    try:
+        results = wikipedia.summary(query, sentences=2)
+        return results
+    except:
+        return "I couldn't find that on Wikipedia."
 
 
 def search_on_google(query):
@@ -72,32 +75,53 @@ def send_email(receiver_add, subject, message):
         return False
 
 
-def get_news():
+def get_news(query="India"):
     news_headline = []
-    result = requests.get(
-        NEWS_FETCH_API_URL,
-        params={
-            "country":"in",
-            "category":"general",
-            "apiKey": NEWS_FETCH_API_KEY
-        },
-    ).json()
-    articles = result["articles"]
-    for article in articles:
-        news_headline.append(article["title"])
-    return news_headline[:6]
+    try:
+        # Use NEWS_SEARCH_URL if available (User preference)
+        if NEWS_SEARCH_URL:
+            # Replace {QUERY} with actual query or default
+            url = NEWS_SEARCH_URL.replace("{QUERY}", query)
+            result = requests.get(url).json()
+        else:
+            # Fallback to old keys/params
+            result = requests.get(
+                NEWS_FETCH_API_URL,
+                params={
+                    "country":"in",
+                    "category":"general",
+                    "apiKey": NEWS_FETCH_API_KEY
+                },
+            ).json()
+            
+        articles = result.get("articles", [])
+        for article in articles:
+            news_headline.append(article["title"])
+        return news_headline[:6]
+    except Exception as e:
+        print(f"News Error: {e}")
+        return ["I could not fetch the news at this time."]
 
 
 def weather_forecast(city):
-    res = requests.get(
-        WEATHER_FORECAST_API_URL,
-        params={
-            "q":city,
-            "appid":WEATHER_FORECAST_API_KEY,
-            "units":"metric"
-        },
-        ).json()
-    weather = res["weather"][0]["main"]
-    temp = res["main"]["temp"]
-    feels_like = res["main"]["feels_like"]
-    return weather, f"{temp}°C", f"{feels_like}°C"
+    try:
+        if WEATHER_CURRENT_URL:
+            # Use user-provided template: https://api.weatherapi.com/...&q={CITY}
+            url = WEATHER_CURRENT_URL.replace("{CITY}", city)
+            res = requests.get(url).json()
+        else:
+            # Fallback to constructed URL
+            api_key = WEATHER_FORECAST_API_KEY
+            url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}&days=1&aqi=no&alerts=no"
+            res = requests.get(url).json()
+            
+        if "error" in res:
+            raise Exception(res["error"]["message"])
+            
+        weather = res["current"]["condition"]["text"]
+        temp = res["current"]["temp_c"]
+        feels_like = res["current"]["feelslike_c"]
+        return weather, f"{temp}°C", f"{feels_like}°C"
+    except Exception as e:
+        print(f"Weather Error: {e}")
+        return "Unknown", "N/A", "N/A"

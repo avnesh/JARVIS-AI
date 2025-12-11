@@ -1,7 +1,8 @@
 gTTS==2.5.3
 IMDbPY==2022.7.9
 keyboard==0.13.5
-Kivy==2.3.0
+Kivy
+
 Kivy_examples==2.3.0
 PyAutoGUI==0.9.54
 pydub==0.25.1
@@ -74,7 +75,8 @@ protobuf==4.25.3
 pyarrow==17.0.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
-PyAudio==0.2.11
+# PyAudio==0.2.11 (Install manually if needed)
+
 pycparser==2.21
 pydantic==2.8.2
 pydantic_core==2.20.1

@@ -1,5 +1,25 @@
 import pyttsx3
+import sys
+
+# Python 3.13 removed aifc, which speech_recognition needs. Mock it.
+if sys.version_info >= (3, 13):
+    import types
+    aifc = types.ModuleType('aifc')
+    aifc.Error = Exception
+    sys.modules['aifc'] = aifc
+
+    try:
+        import audioop
+    except ImportError:
+        try:
+            import audioop_lts as audioop
+            sys.modules['audioop'] = audioop
+        except ImportError:
+            pass
+
+
 import requests
+
 import speech_recognition as sr
 import keyboard
 import os
@@ -11,7 +31,14 @@ import webbrowser
 import time
 
 from datetime import datetime
-from decouple import config
+import os
+from dotenv import load_dotenv
+
+# Load config
+if not load_dotenv():
+    if os.path.exists("env.txt"):
+        load_dotenv("env.txt")
+
 from random import choice
 from const import random_text
 from online import find_my_ip, search_on_google, search_on_wikipedia, youtube, send_email, get_news, weather_forecast
@@ -22,8 +49,9 @@ engine.setProperty('rate', 220)
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[1].id)
 
-USER = config('USER')
-HOSTNAME = config('BOT')
+USER = os.environ.get('USER', 'User')
+HOSTNAME = os.environ.get('BOT', 'Jarvis')
+
 
 
 def speak(text):
@@ -106,18 +134,29 @@ if __name__ == '__main__':
 
             elif "open notepad" in query:
                 speak("Opening Notepad for you sir")
-                notepad_path = "C:\\Users\\ASUS\\AppData\\Local\\Microsoft\\WindowsApps\\notepad.exe"
-                os.startfile(notepad_path)
+                os.system('notepad.exe')
 
             elif "open discord" in query:
                 speak("Opening Discord for you sir")
-                discord_path = "C:\\Users\\ASUS\\AppData\\Local\\Discord\\app-1.0.9028\\Discord.exe"
-                os.startfile(discord_path)
+                # Try default location or just launch if in path
+                discord_path = os.environ.get("DISCORD_PATH")
+                if discord_path and os.path.exists(discord_path):
+                     os.startfile(discord_path)
+                else:
+                    # Fallback to trying to run blindly
+                    try:
+                        os.startfile("Discord.exe")
+                    except Exception:
+                        speak("I could not find Discord path. Please set it in environment variables.")
 
             elif "open gta" in query:
                 speak("Opening Gta for you sir")
-                gta_path = "D:\\Tanishq\\GTA\\Launcher.exe"
-                os.startfile(gta_path)
+                gta_path = os.environ.get("GTA_PATH")
+                if gta_path and os.path.exists(gta_path):
+                    os.startfile(gta_path)
+                else:
+                    speak("GTA path is not configured.")
+
 
             elif 'ip address' in query:
                 ip_address = find_my_ip()
